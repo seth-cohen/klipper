@@ -1,38 +1,43 @@
 # Resonance Testing
+
 ## The accelerometer
 Currently all of this assumes that you are using the ADXL345 accelerometer. I think any breakout
 board that you can find would suffice, but note that you may need to alter the wiring a little depending
 on the breakout board pinout.
+
 ## Wiring
 Just follow the guide (here)[https://github.com/nagimov/adxl345spi#wiring]
 - Always ensure that you Pi is turned off when connecting and disconnecting accessories.
+
 ## Mounting
 I think a lot of people are using this pinned STL file and mounting the board where the cable chain connects
 to the extruder motor.
 
 Personally, I just made a small mount for the breakout board and use some high strength double sided
 kapton tape to mount the accelerometer anywhere on the toolhead.
+
 ## Getting the Code
 This assumes moderate familiarity with git.
 1. Check if you already have the proper remote available.
-  ```bash
-  $ cd klipper
-  $ git remote -v
-  ```
-In that output if you see `https://github.com/dmbutyugin/klipper.git` as one of your remotes, then you have the
-proper remote available, and can skip step 2.
+   ```bash
+   $ cd klipper
+   $ git remote -v
+   ```
+   
+   In that output if you see `https://github.com/dmbutyugin/klipper.git` as one of your remotes, then you have the
+   proper remote available, and can skip step 2.
 2. Add Dmitry's fork as a remote source
-  ```bash
-  $ cd ~/klipper
-  $ git remote add adxl https://github.com/dmbutyugin/klipper.git
-  ```
-confirm that it was successful with `$ git remote -v`
+   ```bash
+   $ cd ~/klipper
+   $ git remote add adxl https://github.com/dmbutyugin/klipper.git
+   ```
+   confirm that it was successful with `$ git remote -v`
 3. Checkout the latest code in the accelerometer branch and restart the service
-  ```bash
-  $ git fetch adxl
-  $ git checkout --track adxl/adxl345-spi
-  $ sudo service klipper restart
-  ```
+   ```bash
+   $ git fetch adxl
+   $ git checkout --track adxl/adxl345-spi
+   $ sudo service klipper restart
+   ```
 4. Setup your RPi as an mcu if you haven't already. https://github.com/dmbutyugin/klipper/blob/adxl345-spi/docs/RPi_microcontroller.md
   ```bash
   $ cd ~/klipper
