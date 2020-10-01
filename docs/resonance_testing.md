@@ -39,25 +39,26 @@ This assumes moderate familiarity with git.
    $ sudo service klipper restart
    ```
 4. Setup your RPi as an mcu if you haven't already. https://github.com/dmbutyugin/klipper/blob/adxl345-spi/docs/RPi_microcontroller.md
-  ```bash
-  $ cd ~/klipper
-  $ sudo cp "./scripts/klipper-mcu-start.sh" /etc/init.d/klipper_mcu
-  $ sudo update-rc.d klipper_mcu defaults
-  $ make menuconfig
-  ```
-  - in `make menuconfig` you will need to update the micro architecture to be `linux process`
-  - use the down arrow to select the `micro-controller architecture` line. Use right/left arrow keys
-  to highlight `select` at bottom and press `enter`
-  - use up/down arrow keys to select `linux process` it may not be visible until scrolling down
-  - once highlighted use right/left arrow keys to highlight `select` and press `enter`
-  - then highlight `exit` and press `enter`
+   ```bash
+   $ cd ~/klipper
+   $ sudo cp "./scripts/klipper-mcu-start.sh" /etc/init.d/klipper_mcu
+   $ sudo update-rc.d klipper_mcu defaults
+   $ make menuconfig
+   ```
+   - in `make menuconfig` you will need to update the micro architecture to be `linux process`
+   - use the down arrow to select the `micro-controller architecture` line. Use right/left arrow keys
+   to highlight `select` at bottom and press `enter`
+   - use up/down arrow keys to select `linux process` it may not be visible until scrolling down
+   - once highlighted use right/left arrow keys to highlight `select` and press `enter`
+   - then highlight `exit` and press `enter`
 5. Build and flash the code
    ```bash
    $ sudo service klipper stop
    $ make flash
    $ sudo service klipper start
    ```
-   - Note: now you will have 2 services running on your system. `klipper` and `klipper_mcu`. `klipper_mcu` needs to be running before `klipper` but your system should take care of that.
+   - Note: now you will have 2 services running on your system. `klipper` and `klipper_mcu`. `klipper_mcu` needs to be running before `klipper` but your system
+   should take care of that.
    - if you need to stop/start/restart/check you can do that easily.
      ```bash
      $ sudo service klipper_mcu restart
