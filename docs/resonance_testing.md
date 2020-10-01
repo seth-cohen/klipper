@@ -52,54 +52,53 @@ This assumes moderate familiarity with git.
   - once highlighted use right/left arrow keys to highlight `select` and press `enter`
   - then highlight `exit` and press `enter`
 5. Build and flash the code
-  ```bash
-  $ sudo service klipper stop
-  $ make flash
-  $ sudo service klipper start
-  ```
-  - Note: now you will have 2 services running on your system. `klipper` and `klipper_mcu`.
-`klipper_mcu` needs to be running before `klipper` but your system should take care of that.
-  - if you need to stop/start/restart/check you can do that easily.
-    ```bash
-    $ sudo service klipper_mcu restart
-    $ sudo service klipper restart
-    ```
-  - replace `restart` with `stop`, `start` or `status` depending on your intent.
-  Additionally, you should have a link to a new psuedo terminal at `/tmp/klipper_host_mcu` (don't worry about what that is - just
-  know that is how you klipper will communicate the Pi behaving as MCU)
-    ```bash
-    $ ls /tmp/klipper*
-    ```
+   ```bash
+   $ sudo service klipper stop
+   $ make flash
+   $ sudo service klipper start
+   ```
+   - Note: now you will have 2 services running on your system. `klipper` and `klipper_mcu`. `klipper_mcu` needs to be running before `klipper` but your system should take care of that.
+   - if you need to stop/start/restart/check you can do that easily.
+     ```bash
+     $ sudo service klipper_mcu restart
+     $ sudo service klipper restart
+     ```
+   - replace `restart` with `stop`, `start` or `status` depending on your intent.
+   Additionally, you should have a link to a new psuedo terminal at `/tmp/klipper_host_mcu` (don't worry about what that is - just
+   know that is how you klipper will communicate the Pi behaving as MCU)
+     ```bash
+     $ ls /tmp/klipper*
+     ```
 6. Ensure that you have the SPI bus enabled on your RPi
-  ```bash
-  $ raspi-config
-  ```
-That will open a menu system where you need to scroll down to `Interfacing Options` and select it
-then go down to `SPI` and click `enter`. Then enable SPI interface.
-  - Your RPi should reboot.
+   ```bash
+   $ raspi-config
+   ```
+   That will open a menu system where you need to scroll down to `Interfacing Options` and select it
+   then go down to `SPI` and click `enter`. Then enable SPI interface.
+   - Your RPi should reboot.
 7. Update your config (printer.cfg)
-  ```yaml
-  [mcu rpi]
-  serial: /tmp/klipper_host_mcu
+   ```yaml
+   [mcu rpi]
+   serial: /tmp/klipper_host_mcu
 
-  [adxl345]
-  cs_pin: rpi:None
-  axes_map: x,y,z
+   [adxl345]
+   cs_pin: rpi:None
+   axes_map: x,y,z
 
-  [resonance_tester]
-  accel_chip: adxl345
-  probe_points:
-      150, 150, 20
-  ```
-Depending on the orientation of your accelerometer you may need to adjust your `axes_map`.
-Helping out another user, he had to adjust his to `axes_map: x,z,-y` essentially you need to
-update your `axes_map` to match your accelerometer orientation. The first in the string aligns
-with `X` axis, then `Y` axis and then `Z`. Consult your accelerometer breakout board datasheet to know 
-which board axis matches the accelerometer axis and match those you your printer.
+   [resonance_tester]
+   accel_chip: adxl345
+   probe_points:
+       150, 150, 20
+   ```
+   Depending on the orientation of your accelerometer you may need to adjust your `axes_map`. 
+   Helping out another user, he had to adjust his to `axes_map: x,z,-y` essentially you need to
+   update your `axes_map` to match your accelerometer orientation. The first in the string aligns
+   with `X` axis, then `Y` axis and then `Z`. Consult your accelerometer breakout board datasheet to know 
+   which board axis matches the accelerometer axis and match those you your printer.
 8. In octoprint or however else you send g-code to your printer execute the command `FIRMWARE_RESTART`
-  - Note on the PI you can do this:
-    ```bash
-    $ echo firmware_restart > /tmp/printer
-    ```
+   - Note on the PI you can do this:
+     ```bash
+     $ echo firmware_restart > /tmp/printer
+     ```
 9. You should be all set to execute the commands `ACCELEROMETER_QUERY`, `MEASURE_AXES_NOISE` and the rest.
 
