@@ -82,7 +82,7 @@ def plot_frequency(datas, lognames, max_freq):
 
     fig, ax = matplotlib.pyplot.subplots()
     ax.set_title("\n".join(wrap(
-        "Accelerometer data (%s)" % (', '.join(lognames)), MAX_TITLE_LENGTH)))
+        "Frequency response (%s)" % (', '.join(lognames)), MAX_TITLE_LENGTH)))
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Power spectral density')
 
@@ -91,7 +91,14 @@ def plot_frequency(datas, lognames, max_freq):
     ax.plot(freqs, py, label='Y', alpha=0.6)
     ax.plot(freqs, pz, label='Z', alpha=0.6)
 
-    ax.grid(True)
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.grid(which='major', color='grey')
+    ax.grid(which='minor', color='lightgrey')
+    ax.ticklabel_format(axis='y', style='scientific', scilimits=(0,0))
+
     fontP = matplotlib.font_manager.FontProperties()
     fontP.set_size('x-small')
     ax.legend(loc='best', prop=fontP)
@@ -100,7 +107,7 @@ def plot_frequency(datas, lognames, max_freq):
 
 def plot_compare_frequency(datas, lognames, max_freq):
     fig, ax = matplotlib.pyplot.subplots()
-    ax.set_title("Accelerometer data")
+    ax.set_title('Frequency responses comparison')
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Power spectral density')
 
@@ -111,7 +118,12 @@ def plot_compare_frequency(datas, lognames, max_freq):
         freqs = freqs[freqs <= max_freq]
         ax.plot(freqs, psd, label="\n".join(wrap(logname, 60)), alpha=0.6)
 
-    ax.grid(True)
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.grid(which='major', color='grey')
+    ax.grid(which='minor', color='lightgrey')
     fontP = matplotlib.font_manager.FontProperties()
     fontP.set_size('x-small')
     ax.legend(loc='best', prop=fontP)
@@ -132,6 +144,16 @@ def plot_specgram(data, logname, max_freq, axis):
     fig.tight_layout()
     return fig
 
+######################################################################
+# CSV output
+######################################################################
+
+def write_frequency_response(datas, output):
+    helper = ShaperCalibrate(printer=None)
+    calibration_data = helper.process_accelerometer_data(datas[0])
+    for data in datas[1:]:
+        calibration_data.join(helper.process_accelerometer_data(data))
+    helper.save_calibration_data(output, calibration_data)
 
 ######################################################################
 # Startup
@@ -168,6 +190,10 @@ def main():
 
     # Parse data
     datas = [parse_log(fn) for fn in args]
+
+    if options.output and os.path.splitext(options.output)[1].lower() == '.csv':
+        write_frequency_response(datas, options.output)
+        return
 
     # Draw graph
     setup_matplotlib(options.output is not None)

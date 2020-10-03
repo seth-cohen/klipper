@@ -268,19 +268,15 @@ class ResonanceTester:
         if axis not in self.test.get_supported_axes():
             raise gcmd.error("Unsupported axis '%s'" % (axis,))
 
-        fig_name_tmpl = gcmd.get("FIG_NAME", None)
         csv_name_tmpl = gcmd.get("CSV_NAME", None)
         raw_name_tmpl = gcmd.get("RAW_NAME", None)
-        if (fig_name_tmpl or csv_name_tmpl or raw_name_tmpl) is None:
-            raise gcmd.error("No output specified, at least one of "
-                    "'FIG_NAME', 'CSV_NAME' or 'RAW_NAME' parameters must "
-                    "be set for TEST_RESONANCES to have an effect")
+        if csv_name_tmpl is None and raw_name_tmpl is None:
+            raise gcmd.error("No output specified, at least one of 'CSV_NAME' "
+                             "or 'RAW_NAME' parameters must be set")
 
         # Setup calculation of resonances
-        if csv_name_tmpl is not None or fig_name_tmpl is not None:
-            calibrator = shaper_calibrate.ShaperCalibrate(self.printer)
-            if fig_name_tmpl is not None:
-                calibrator.setup_matplotlib(output_to_file=True)
+        if csv_name_tmpl is not None:
+            helper = shaper_calibrate.ShaperCalibrate(self.printer)
 
         currentPos = toolhead.get_position()
         Z = currentPos[2]
@@ -312,7 +308,7 @@ class ResonanceTester:
                                 point if len(calibration_points) > 1 else None)
                         results.write_to_file(raw_name)
                     raw_values.append((chip_axis, results))
-            if csv_name_tmpl is None and fig_name_tmpl is None:
+            if csv_name_tmpl is None:
                 continue
             for chip_axis, chip_values in raw_values:
                 gcmd.respond_info("%s-axis accelerometer stats: %s" % (
@@ -321,12 +317,10 @@ class ResonanceTester:
                     raise gcmd.error(
                             "%s-axis accelerometer measured no data" % (
                                 chip_axis,))
-                new_data = calibrator.process_accelerometer_data(chip_values)
+                new_data = helper.process_accelerometer_data(chip_values)
                 data = data.join(new_data) if data else new_data
-        if fig_name_tmpl is not None:
-            self.save_calibration_fig(fig_name_tmpl, calibrator, axis, data)
         if csv_name_tmpl is not None:
-            self.save_calibration_data(csv_name_tmpl, calibrator, axis, data)
+            self.save_calibration_data(csv_name_tmpl, helper, axis, data)
 
     def cmd_SHAPER_CALIBRATE(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
@@ -340,13 +334,10 @@ class ResonanceTester:
         else:
             calibrate_axes = [axis.lower()]
 
-        fig_name_tmpl = gcmd.get("FIG_NAME", None)
         csv_name_tmpl = gcmd.get("CSV_NAME", "calibration_data.csv")
 
         # Setup shaper calibration
-        calibrator = shaper_calibrate.ShaperCalibrate(self.printer)
-        if fig_name_tmpl is not None:
-            calibrator.setup_matplotlib(output_to_file=True)
+        helper = shaper_calibrate.ShaperCalibrate(self.printer)
 
         input_shaper = self.printer.lookup_object('input_shaper', None)
         if input_shaper is not None:
@@ -384,7 +375,7 @@ class ResonanceTester:
                         raise gcmd.error(
                                 "%s-axis accelerometer measured no data" % (
                                     chip_axis,))
-                    new_data = calibrator.process_accelerometer_data(chip_values)
+                    new_data = helper.process_accelerometer_data(chip_values)
                     if calibration_data[axis] is None:
                         calibration_data[axis] = new_data
                     else:
@@ -397,17 +388,13 @@ class ResonanceTester:
                     "Calculating the best input shaper parameters for %s axis"
                     % (axis,))
             calibration_data[axis].normalize_to_frequencies()
-            shaper_name, shaper_freq, shapers_vals = calibrator.find_best_shaper(
+            shaper_name, shaper_freq, shapers_vals = helper.find_best_shaper(
                     calibration_data[axis], gcmd.respond_info)
             gcmd.respond_info(
                     "Recommended shaper_type_%s = %s, shaper_freq_%s = %.1f Hz"
                     % (axis, shaper_name, axis, shaper_freq))
-            calibrator.save_params(configfile, axis, shaper_name, shaper_freq)
-            if fig_name_tmpl is not None:
-                self.save_calibration_fig(fig_name_tmpl, calibrator, axis,
-                                          calibration_data[axis], shapers_vals,
-                                          shaper_name)
-            self.save_calibration_data(csv_name_tmpl, calibrator, axis,
+            helper.save_params(configfile, axis, shaper_name, shaper_freq)
+            self.save_calibration_data(csv_name_tmpl, helper, axis,
                                        calibration_data[axis], shapers_vals)
 
         gcmd.respond_info(
@@ -424,9 +411,9 @@ class ResonanceTester:
         self.printer.lookup_object('toolhead').dwell(meas_time)
         raw_values = [(axis, chip.finish_measurements())
                       for axis, chip in self.accel_chips]
-        calibrator = shaper_calibrate.ShaperCalibrate(self.printer)
+        helper = shaper_calibrate.ShaperCalibrate(self.printer)
         for axis, raw_data in raw_values:
-            data = calibrator.process_accelerometer_data(raw_data)
+            data = helper.process_accelerometer_data(raw_data)
             vx = data.psd_x.mean()
             vy = data.psd_y.mean()
             vz = data.psd_z.mean()
@@ -446,23 +433,11 @@ class ResonanceTester:
         base += time_suffix
         return os.path.join("/tmp", base + ext)
 
-    def save_calibration_fig(self, fig_name_tmpl, calibrator, axis,
-                             calibration_data, shapers_vals=None,
-                             shaper_name=None):
-        fig = calibrator.plot_freq_response(
-                calibration_data, shapers_vals, shaper_name)
-        fig.set_size_inches(8, 6)
-        fig_filename = self.get_filename(fig_name_tmpl, axis)
-        try:
-            fig.savefig(fig_filename)
-        except IOError as e:
-            raise self.gcode.error("Error writing to file '%s': %s",
-                                   fig_filename, str(e))
-
-    def save_calibration_data(self, csv_name_tmpl, calibrator, axis,
+    def save_calibration_data(self, csv_name_tmpl, shaper_calibrate, axis,
                               calibration_data, shapers_vals=None):
         output = self.get_filename(csv_name_tmpl, axis)
-        calibrator.save_calibration_data(output, calibration_data, shapers_vals)
+        shaper_calibrate.save_calibration_data(output, calibration_data,
+                                               shapers_vals)
 
 def load_config(config):
     return ResonanceTester(config)

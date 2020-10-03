@@ -668,27 +668,24 @@ The following commands are available when a "resonance_tester" config section
 is enabled:
 - `MEASURE_AXES_NOISE`: Measures and outputs the noise for all axes of all
   enabled accelerometer chips.
-- `TEST_RESONANCES AXIS=<axis> [CSV_NAME=<csv_file>] [FIG_NAME=<fig_file>]
-  [RAW_NAME=<raw_cvs_file>] [FREQ_START=<min_freq>] [FREQ_END=<max_freq>]
-  [HZ_PER_SEC=<hz_per_sec>]`: Runs the resonance test in all configured
-  probe points for the requested axis (X or Y) and measures the acceleration
-  using the accelerometer chips configured for the respective axis. Then
-  the frequency response is calculated and written to a CSV file. If
-  `CSV_NAME` is set, it is treated as a template
-  `<csv_file> = <csv_name>+<csv_ext>` and the data is written
-  into `/tmp/<csv_name>_<axis>_YYYYMMDD_HHMMSS<csv_ext>` file; if it is not
-  set, `CSV_NAME=resonance_data.csv` is used as a default. If `FIG_NAME` is
-  set, the chart is generated and written to
-  `/tmp/<fig_name>_<axis>_YYYYMMDD_HHMMSS<fig_ext>` file. If `RAW_NAME` is
-   set, then the raw accelerometer data is written into a file or a series
-   of files `/tmp/<raw_csv_name>_<axis>_<point>_YYYYMMDD_HHMMSS<raw_csv_ext>`.
-- `SHAPER_CALIBRATE [AXIS=<axis>] [CSV_NAME=<csv_file>] [FIG_NAME=<fig_file>]
+- `TEST_RESONANCES AXIS=<axis> [CSV_NAME=<csv_file>] [RAW_NAME=<raw_cvs_file>]
+  [FREQ_START=<min_freq>] [FREQ_END=<max_freq>] [HZ_PER_SEC=<hz_per_sec>]`:
+  Runs the resonance test in all configured probe points for the requested
+  axis (X or Y) and measures the acceleration using the accelerometer chips
+  configured for the respective axis. If `RAW_NAME` is set, then the raw
+  accelerometer data is written into a file or a series of files
+  `/tmp/<raw_csv_name>_<axis>_<point>_YYYYMMDD_HHMMSS<raw_csv_ext>`.
+  If `CSV_NAME` is set, it is treated as a template
+  `<csv_file> = <csv_name>+<csv_ext>`; the frequency response is calculated
+  and written into `/tmp/<csv_name>_<axis>_YYYYMMDD_HHMMSS<csv_ext>` file.
+  At least one of the `CSV_NAME` or `RAW_NAME` parameters must be provided.
+- `SHAPER_CALIBRATE [AXIS=<axis>] [CSV_NAME=<csv_file>]
   [FREQ_START=<min_freq>] [FREQ_END=<max_freq>] [HZ_PER_SEC=<hz_per_sec>]`:
   Similarly to `TEST_RESONANCES`, runs the resonance test as configured, and
   tries to find the optimal parameters for the input shaper for the requested
   axis (or both X and Y axes if `AXIS` parameter is unset). The results of the
   tuning are printed to the console, and the frequency responses and the
   different input shapers values can be written to a `<csv_file>`(s)
-  (`calibration_data.csv` by default) and to a `<fig_file>`(s) similarly to
-  `TEST_RESONANCES` command. Note that the suggested input shaper parameters
-  can be persisted in the config by issuing `SAVE_CONFIG` command.
+  (`calibration_data.csv` by default) similarly to `TEST_RESONANCES` command.
+  Note that the suggested input shaper parameters can be persisted in the
+  config by issuing `SAVE_CONFIG` command.

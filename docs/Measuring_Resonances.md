@@ -48,17 +48,13 @@ CPU, it may take *a lot* of time, up to 10-20 minutes. Be patient and wait
 for the completion of the installation. On some occasions, if the board has
 too little RAM, the installation may fail and you will need to enable swap.
 
-Note that if you want Klipper to be able to plot the charts with the results
-of the measurements, additionally you will have to install `matplotlib`:
-```
-$ ~/klippy-env/bin/pip install -v matplotlib
-```
-
 If installing prerequisites takes too much time or fail for whatever reason,
 there is, in principle, another possibility to run a stand-alone script to
 automatically tune the input shapers (will be covered later in the guide).
-In this case, one must run the following command to install the missing
-dependencies instead
+
+In order to run stand-alone scripts, one must run the following command to
+install the required dependencies (either on Raspberry Pi, or on host,
+depending on where the scripts will be executed):
 ```
 $ sudo apt install python-numpy python-matplotlib
 ```
@@ -133,24 +129,24 @@ as well:
 TEST_RESONANCES AXIS=Y CSV_NAME=resonances.csv
 ```
 This will generate 2 CSV files (`/tmp/resonances_x_*.csv` and
-`/tmp/resonances_y_*.csv`). If you have installed `matplotlib` previously,
-you can also pass the parameter `FIG_NAME=resonances.png`, which will
-additionally generate 2 charts.
+`/tmp/resonances_y_*.csv`).
 
-Note that the commands above need to have `numpy` installed. If you haven't
-installed it, you can instead pass `RAW_NAME=raw_data.csv` argument to the
-above commands (2 files `/tmp/raw_data_x_*.csv` and `/tmp/raw_data_y_*.csv`
+Note that the commands above require `numpy` to be installed installed. If you
+haven't installed it, you can instead pass `RAW_NAME=raw_data.csv` argument to
+theabove commands (2 files `/tmp/raw_data_x_*.csv` and `/tmp/raw_data_y_*.csv`
 will be written). One can then run stand-alone scripts on Raspberry Pi
 (specify the correct file name on the command line):
 ```
 $ ~/klipper/scripts/graph_accelerometer.py /tmp/raw_data_x_*.csv -o /tmp/resonances_x.png
 $ ~/klipper/scripts/calibrate_shaper.py /tmp/raw_data_x_*.csv -o /tmp/shaper_calibrate_x.png
 ```
-or copy the data to the host and run the scripts there.
+or copy the data to the host and run the scripts there. See
+[Offline processing of the accelerometer data](#offline-processing-of-the-accelerometer-data)
+section for more details.
 
 **Attention!** Be sure to observe the printer for the first time, to make sure
 the vibrations do not become too violent (`M112` command can be used to abort
-the test in case of emergency, hopefully it will not come to this though).
+the test in case of emergency; hopefully it will not come to this though).
 If the vibrations do get too strong, you can attempt to specify a lower than the
 default value for `accel_per_hz` parameter in `[resonance_tester]` section, e.g.
 ```
@@ -160,17 +156,16 @@ accel_per_hz: 50  # default is 75
 probe_points: ...
 ```
 
-Generated charts show power spectral density of the vibrations depending on the
-frequency. Usually, the charts are pretty much self-explanatory, with the peaks
-corresponding to the resonance frequencies:
+Generated CSV files show power spectral density of the vibrations depending on the
+frequency. Usually, the charts generated from these CSV files are pretty much
+self-explanatory, with the peaks corresponding to the resonance frequencies:
 
 ![Resonances](img/test-resonances-x.png)
 
-The chart above
-shows the resonances for X axis at approx. 50 Hz, 56 Hz, 63 Hz, 80 Hz and
-104 Hz and one cross-resonance for Y axis at ~ 56 Hz. From this, one can derive
-that a good input shaper config in this case could be `2hump_ei` at around
-`shaper_freq_y = 45` (Hz):
+The chart above shows the resonances for X axis at approx. 50 Hz, 56 Hz, 63 Hz,
+80 Hz and 104 Hz and one cross-resonance for Y axis at ~ 56 Hz. From this, one
+can derive that a good input shaper config in this case could be `2hump_ei` at
+around `shaper_freq_y = 45` (Hz):
 
 |![2-hump EI shaper](img/2hump_ei_65hz.png)|
 |:--:|
@@ -189,17 +184,14 @@ In order to attempt to measure the resonance frequencies and automatically
 determine the best parameters for `[input_shaper]`, run the following command
 via Octoprint terminal:
 ```
-SHAPER_CALIBRATE [FIG_NAME=calibration.png]
+SHAPER_CALIBRATE
 ```
 
-Note that `FIG_NAME` parameter is optional, and should only be passed if
-`matplotlib` was installed.
-
 This will test all frequencies in range 5 Hz - 120 Hz and generate
-`/tmp/calibration_x_*.png` and `/tmp/calibration_y_*.png` charts, as well as
-the csv data for those charts (`/tmp/calibration_data_*.csv`). You will also
-get the suggested frequencies for each input shaper, as well as which
-input shaper is recommended for your setup. For example:
+the csv output (`/tmp/calibration_data_*.csv` by default) for the frequency
+response and the suggested input shapers. You will also get the suggested
+frequencies for each input shaper, as well as which input shaper is recommended
+for your setup, on Octoprint console. For example:
 
 ![Resonances](img/calibrate-y.png)
 ```
@@ -220,7 +212,7 @@ attached to the toolhead and the resonances of Y axis - to the bed (the usual
 bed slinger setup). In this case, you can specify the axis you want to run the
 test for (by default the test is performed for both axes):
 ```
-SHAPER_CALIBRATE AXIS=Y FIG_NAME=calibration.png
+SHAPER_CALIBRATE AXIS=Y
 ```
 
 You can execute `SAVE_CONFIG` twice - after calibrating each axis.
@@ -249,13 +241,13 @@ the input shaper tuning guide and print the test model.
 
 ## Input Shaper re-calibration
 
-`SHAPER_CALIBRATE` can be also used to re-calibrate the input shaper in the
-future, especially if some changes to the printer that can affect its kinematics
-are made. One can either re-run the full calibration using `SHAPER_CALIBRATE`
-command, or restrict the auto-calibration to a single axis by supplying `AXIS=`
-parameter, like
+`SHAPER_CALIBRATE` command can be also used to re-calibrate the input shaper in
+the future, especially if some changes to the printer that can affect its
+kinematics are made. One can either re-run the full calibration using
+`SHAPER_CALIBRATE` command, or restrict the auto-calibration to a single axis by
+supplying `AXIS=` parameter, like
 ```
-SHAPER_CALIBRATE AXIS=X FIG_NAME=calibration.png
+SHAPER_CALIBRATE AXIS=X
 ```
 
 **Warning!** It is not advisable to run the shaper autocalibration very
@@ -266,10 +258,68 @@ exposure to vibrations near the resonance frequencies. Doing so may increase
 wear of the printer components and reduce their lifespan. There is also an
 increased risk of some parts unscrewing or becoming loose. Always check that
 all parts of the printer (including the ones that may normally not move) are
-securely fixed after each auto-tuning.
+securely fixed in place after each auto-tuning.
 
-Also, do to some noise in measurements, it is possible the the tuning results
+Also, due to some noise in measurements, it is possible the the tuning results
 will be slightly different from one calibration run to another one. Still, it
 is not expected that the resulting print quality will be affected too much.
 However, it is still advised to double-check the suggested parameters, and
 print some test prints before using them to confirm they are good.
+
+## Offline processing of the accelerometer data
+
+It is possible to generate the raw accelerometer data and process it offline
+(e.g. on a host machine), for example to find resonances. In order to do so,
+run the following command via Octoprint terminal:
+```
+TEST_RESONANCES AXIS=X RAW_NAME=raw_data.csv
+```
+(specify the desired test axis and the desired template for the raw
+accelerometer output, the data will be written into `/tmp` directory).
+
+The raw data can also be obtained by running the command `ACCELEROMETER_MEASURE`
+command twice during some normal printer activity - first to start the
+measurements, and then to stop them and write the output file. Refer to
+[G-Codes](G-Codes.md#adxl345-accelerometer-commands) for more details.
+
+The data can be processed later by the following scripts:
+`scripts/graph_accelerometer.py` and `scripts/calibrate_shaper.py`. Both
+of them accept one or several raw csv files as the input depending on the
+mode. The graph_accelerometer.py script supports several modes of operation:
+  * plotting raw accelerometer data (use `-r` parameter), only 1 input is
+    supported;
+  * plotting a frequency response (no extra parameters required), if multiple
+    inputs are specified, the average frequency response is computed;
+  * comparison of the frequency response between several inputs (use `-c`
+    parameter); you can additionally specify which accelerometer axis to
+    consider via `-a x`, `-a y` or `-a z` parameter (if none specified,
+    the sum of vibrations for all axes is used);
+  * plotting the spectrogram (use `-s` parameter), only 1 input is supported;
+    you can additionally specify which accelerometer axis to consider via
+    `-a x`, `-a y` or `-a z` parameter (if none specified, the sum of vibrations
+    for all axes is used).
+
+For example,
+```
+$ ~/klipper/scripts/graph_accelerometer.py /tmp/raw_data_x_*.csv -o /tmp/resonances_x.png -c -a z
+```
+will plot the comparison of several `/tmp/raw_data_x_*.csv` files for Z axis to
+`/tmp/resonances_x.png` file.
+
+The shaper_calibrate.py script accepts 1 or several inputs and can run automatic
+tuning of the input shaper and suggest the best parameters that work well for
+all provided inputs. It prints the suggested parameters to the console, and can
+additionally generate the chart if `-o output.png` parameter is provided, or
+the CSV file if `-c output.csv` parameter is specified.
+
+Providing several inputs to shaper_calibrate.py script can be useful if running
+some advanced tuning of the input shapers, for example:
+  * Running `TEST_RESONANCES AXIS=X` (and `Y` axis) for a single axis twice on a
+    bed slinger printer with the accelerometer attached to the toolhead the
+    first time, and the accelerometer attached to the bed the second time in
+    order to detect axes cross-resonances and attempt to cancel them with input
+    shapers.
+  * Running `TEST_RESONANCES AXIS=Y` twice on a bed slinger with a glass bed and
+    a magnetic surfaces (which is lighter) to find the input shaper
+    parameters that work well for any print surface configuration.
+  * Combining the resonance data from multiple test points.

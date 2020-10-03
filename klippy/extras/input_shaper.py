@@ -85,6 +85,10 @@ class InputShaper:
                     , shaper_freq_x, shaper_freq_y
                     , damping_ratio_x, damping_ratio_y)
     def disable_shaping(self):
+        if (self.saved_shaper_freq_x or self.saved_shaper_freq_y) and not (
+                self.shaper_freq_x or self.shaper_freq_y):
+            # Input shaper is already disabled
+            return
         self.saved_shaper_freq_x = self.shaper_freq_x
         self.saved_shaper_freq_y = self.shaper_freq_y
         self._set_input_shaper(self.shaper_type_x, self.shaper_type_y, 0., 0.,

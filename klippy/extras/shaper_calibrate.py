@@ -3,7 +3,6 @@
 # Copyright (C) 2020  Dmitry Butyugin <dmbutyugin@google.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-from __future__ import print_function
 import importlib, logging, math, multiprocessing
 
 MIN_FREQ = 10.
@@ -154,7 +153,6 @@ class ShaperCalibrate:
                     "Failed to import `numpy` module, make sure it was "
                     "installed via `~/klippy-env/bin/pip install` (refer to "
                     "docs/Measuring_Resonances.md for more details).")
-        self.matplotlib = None
 
     def background_process_exec(self, method, args):
         if self.printer is None:
@@ -187,8 +185,7 @@ class ShaperCalibrate:
         # Return results
         is_err, res = parent_conn.recv()
         if is_err:
-            raise self.printer.command_error(
-                    "Error in remote calculation: %s" % (res,))
+            raise self.error("Error in remote calculation: %s" % (res,))
         calc_proc.join()
         parent_conn.close()
         return res
@@ -261,7 +258,7 @@ class ShaperCalibrate:
         calibration_data = self.background_process_exec(
                 self.calc_freq_response, (data,))
         if calibration_data is None:
-            raise self.printer.command_error(
+            raise self.error(
                     "Internal error processing accelerometer data %s" % (data,))
         calibration_data.set_numpy(self.numpy)
         return calibration_data
@@ -356,80 +353,6 @@ class ShaperCalibrate:
             all_shaper_vals.append((shaper.name, shaper_freq, shaper_vals))
         return (best_shaper, best_freq, all_shaper_vals)
 
-    def setup_matplotlib(self, output_to_file):
-        try:
-            self.matplotlib = importlib.import_module('matplotlib')
-        except ImportError:
-            raise self.error(
-                    "Failed to import `matplotlib` module which is required "
-                    "to plot charts. Make sure it was installed via "
-                    "`~/klippy-env/bin/pip install` correctly")
-        if output_to_file:
-            self.matplotlib.rcParams.update({'figure.autolayout': True})
-            self.matplotlib.use('Agg')
-        self.pyplot = importlib.import_module('matplotlib.pyplot')
-        self.output_to_file = output_to_file
-
-    def plot_freq_response(self, calibration_data, shapers_vals,
-                           selected_shaper):
-        matplotlib = self.matplotlib
-        plt = self.pyplot
-
-        freqs = calibration_data.freq_bins
-        psd = calibration_data.psd_sum[freqs <= MAX_FREQ]
-        px = calibration_data.psd_x[freqs <= MAX_FREQ]
-        py = calibration_data.psd_y[freqs <= MAX_FREQ]
-        pz = calibration_data.psd_z[freqs <= MAX_FREQ]
-        freqs = freqs[freqs <= MAX_FREQ]
-
-        fontP = matplotlib.font_manager.FontProperties()
-        fontP.set_size('x-small')
-
-        fig, ax = plt.subplots()
-        ax.set_xlabel('Frequency, Hz')
-        ax.set_xlim([0, MAX_FREQ])
-        ax.set_ylabel('Power spectral density')
-
-        ax.plot(freqs, psd, label='X+Y+Z', color='purple')
-        ax.plot(freqs, px, label='X', color='red')
-        ax.plot(freqs, py, label='Y', color='green')
-        ax.plot(freqs, pz, label='Z', color='blue')
-
-        if shapers_vals:
-            ax.set_title("Frequency response and shapers")
-        else:
-            ax.set_title("Frequency response")
-        ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax.ticklabel_format(style='scientific')
-        ax.grid(which='major', color='grey')
-        ax.grid(which='minor', color='lightgrey')
-        ax.legend(loc='upper right', prop=fontP)
-
-        if shapers_vals:
-            ax2 = ax.twinx()
-            ax2.set_ylabel('Shaper vibration reduction (ratio)')
-            best_shaper_vals = None
-            for name, freq, vals in shapers_vals:
-                label = "%s (%.1f Hz)" % (name.upper(), freq)
-                linestyle = 'dotted'
-                if name == selected_shaper:
-                    label += ' (selected)'
-                    linestyle = 'dashdot'
-                    best_shaper_vals = vals
-                ax2.plot(freqs, vals, label=label, linestyle=linestyle)
-            ax.plot(freqs, psd * best_shaper_vals,
-                    label='After\nshaper', color='cyan')
-            ax2.legend(loc='upper left', prop=fontP)
-
-        fig.tight_layout()
-
-        if not self.output_to_file:
-            plt.show()
-        return fig
-
     def save_params(self, configfile, axis, shaper_name, shaper_freq):
         if axis == 'xy':
             self.save_params(configfile, 'x', shaper_name, shaper_freq)
@@ -463,5 +386,4 @@ class ShaperCalibrate:
                             csvfile.write(",%.3f" % (vals[i],))
                     csvfile.write("\n")
         except IOError as e:
-            raise self.printer.command_error("Error writing to file '%s': %s",
-                                             output, str(e))
+            raise self.error("Error writing to file '%s': %s", output, str(e))
